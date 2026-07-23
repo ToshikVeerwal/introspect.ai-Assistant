@@ -1,0 +1,193 @@
+# Voice Assistant (Local, Windows)
+ 
+A lightweight, locally-running AI voice assistant built in Python. Wake it
+with a spoken wake word, talk to it naturally, and it replies out loud.
+100% free libraries — no paid APIs required.
+ 
+```
+voice_assistant/
+│
+├── main.py          # Entry point
+├── assistant.py      # Wake-word / listen loop / state machine
+├── speech.py          # Speech-to-text + text-to-speech engines
+├── commands.py         # Natural-language command understanding & execution
+├── config.py            # All configuration (.env driven)
+├── utils.py               # Logging, colored output, animations
+├── requirements.txt
+├── README.md
+├── .env.example
+└── assets/
+```
+ 
+## Features
+ 
+- **Wake word detection** — "Hey Assistant", "Hello Assistant", or just
+  "Assistant" (fully configurable).
+- **Speech-to-text** via Google's free Web Speech API (through the
+  `speech_recognition` library).
+- **Text-to-speech** — offline (`pyttsx3`) or realistic neural voices
+  (`edge-tts`), switchable via config.
+- **Commands**: greetings, time, date, weather (OpenWeather), open
+  websites, web search, Wikipedia lookups, calculator (incl. percentages),
+  jokes, motivational quotes, opening Notepad/Calculator, and basic
+  small-talk.
+- **Continuous listening** until you say "Goodbye", "Exit", "Stop
+  listening", or "Shutdown".
+- **Bonus**: conversation history, colored terminal output, typing/loading
+  animations, configurable voice/rate/volume, configurable wake word.
+## 1. Prerequisites
+ 
+- **Windows 10/11**
+- **Python 3.10+** — [python.org/downloads](https://www.python.org/downloads/)
+- A working **microphone** and **speakers**
+- **Microsoft C++ Build Tools** are sometimes needed for `PyAudio` to
+  install on Windows — see Troubleshooting below if `pip install` fails.
+## 2. Installation
+ 
+Open **PowerShell** or **Command Prompt** in the project folder.
+ 
+### 2.1 Create and activate a virtual environment
+ 
+```powershell
+python -m venv venv
+venv\Scripts\activate
+```
+ 
+You should see `(venv)` appear at the start of your prompt.
+ 
+### 2.2 Install dependencies
+ 
+```powershell
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+ 
+> **PyAudio note:** if `pip install PyAudio` fails on Windows with a build
+> error, install a prebuilt wheel instead:
+> ```powershell
+> pip install pipwin
+> pipwin install pyaudio
+> ```
+ 
+### 2.3 Configure environment variables
+ 
+```powershell
+copy .env.example .env
+```
+ 
+Open `.env` in a text editor and fill in what you need (at minimum, set
+`OPENWEATHER_API_KEY` if you want the weather command to work — everything
+else works with the defaults).
+ 
+## 3. Getting a free OpenWeather API key
+ 
+1. Go to <https://openweathermap.org/api> and create a free account.
+2. Generate an API key from your account dashboard (it can take a few
+   minutes to activate).
+3. Paste it into `.env` as `OPENWEATHER_API_KEY=...`.
+Without a key, every other feature still works — the assistant will just
+tell you weather isn't configured yet.
+ 
+## 4. Running the assistant
+ 
+```powershell
+venv\Scripts\activate
+python main.py
+```
+ 
+You'll see:
+ 
+```
+[INFO] Assistant is ready. Say one of ['hey assistant', 'hello assistant', 'assistant'] to begin.
+Assistant: Assistant is online and ready.
+```
+ 
+Say **"Hey Assistant"**, wait for "Yes? I'm listening.", then speak a
+command, e.g. *"What time is it?"* or *"Tell me a joke."*
+ 
+Say **"Goodbye"**, **"Exit"**, **"Stop listening"**, or **"Shutdown"** at
+any time to put it back to sleep (or Ctrl+C to quit the program entirely).
+ 
+## 5. Microphone permissions (Windows)
+ 
+Windows blocks app access to the microphone by default for some apps.
+If the assistant never seems to hear you:
+ 
+1. Open **Settings → Privacy & security → Microphone**.
+2. Make sure **"Microphone access"** is turned **On**.
+3. Make sure **"Let desktop apps access your microphone"** is turned **On**.
+4. Restart the terminal / IDE you're running `python main.py` from.
+## 6. Voice, rate, and volume customization
+ 
+All in `.env`:
+ 
+```ini
+TTS_ENGINE=pyttsx3        # or edge-tts for a more realistic voice
+TTS_RATE=180               # words per minute
+TTS_VOLUME=1.0              # 0.0 - 1.0
+EDGE_TTS_VOICE=en-US-GuyNeural
+```
+ 
+To list available `pyttsx3` voices on your machine, run this once in a
+Python shell:
+ 
+```python
+import pyttsx3
+engine = pyttsx3.init()
+for voice in engine.getProperty("voices"):
+    print(voice.id, "-", voice.name)
+```
+ 
+Copy the `voice.id` you like into `TTS_VOICE` in `.env`.
+ 
+To list `edge-tts` voices:
+ 
+```powershell
+edge-tts --list-voices
+```
+ 
+## 7. Changing the wake word
+ 
+Edit `WAKE_WORDS` and `EXIT_WORDS` in `.env` (comma-separated, no code
+changes needed):
+ 
+```ini
+WAKE_WORDS=hey jarvis,jarvis
+EXIT_WORDS=goodbye,that's all
+```
+ 
+## 8. Troubleshooting
+ 
+| Problem | Fix |
+|---|---|
+| `PyAudio` fails to install | Use `pipwin install pyaudio` (see §2.2), or install the matching wheel from [Christoph Gohlke's unofficial builds](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio). |
+| "No microphone was found" | Check the mic is plugged in / set as default recording device in Windows Sound settings. |
+| Assistant never recognizes speech | Check microphone permissions (§5); try increasing `ENERGY_THRESHOLD` in `.env` if you're in a noisy room, or decreasing it if you're in a very quiet one. |
+| `speech_recognition` raises a request error | Google's free STT endpoint needs an internet connection — check connectivity. |
+| `edge-tts` playback fails / no sound | Requires internet access; the assistant automatically falls back to offline `pyttsx3` if `edge-tts` can't initialize. |
+| Weather command says "not configured" | Add a valid `OPENWEATHER_API_KEY` to `.env` (see §3) — new keys can take a few minutes to activate. |
+| Colors don't show correctly in terminal | Use Windows Terminal or PowerShell 7+; the classic `cmd.exe` has more limited ANSI support. |
+ 
+## 9. Extending the assistant
+ 
+The project is deliberately modular so you can grow it without rewrites:
+ 
+- **Smarter understanding / LLMs**: implement `CommandProcessor.fallback_llm_response()`
+  in `commands.py` to call OpenAI, Gemini, Claude, or a local Ollama model
+  for anything that doesn't match a built-in command. `config.py` already
+  has `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, and `OLLAMA_BASE_URL`
+  settings ready to use.
+- **New commands**: add one `_handle_x` method and one `Intent(...)` entry
+  in `CommandProcessor._build_intents()` in `commands.py`.
+- **GUI**: build a UI layer that imports `VoiceAssistant` from
+  `assistant.py` and calls `assistant.speak()` / `assistant.commands.process()`
+  directly instead of (or alongside) the console loop.
+- **Memory**: `CommandProcessor.history` already stores every turn; persist
+  it to disk/a database for long-term memory.
+- **Scheduling / home automation**: add new intents in `commands.py` that
+  call out to a scheduler library or a home-automation API/SDK.
+- **Face recognition**: add a new module (e.g. `vision.py`) and call it
+  from `assistant.py` before/alongside the audio wake-word check.
+## 10. License
+ 
+Use, modify, and extend freely for personal or educational projects.
